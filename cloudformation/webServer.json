@@ -1,0 +1,328 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description" : "Single web server (CentOS, Apache, PHP7) in its own VPC",
+    "Mappings": {
+        "RegionMap": {
+            "us-east-1": {
+                "64": "ami-ae7bfdb8"
+            },
+            "us-east-2": {
+                "64": "ami-9cbf9bf9"
+            },
+            "us-west-1": {
+                "64": "ami-7c280d1c"
+            },
+            "us-west-2": {
+                "64": "ami-0c2aba6c"
+            }
+        }
+    },
+    "Parameters": {
+        "KeyPair": {
+            "Description": "Amazon EC2 Key Pair",
+            "Type": "AWS::EC2::KeyPair::KeyName"
+        },
+        "Owner": {
+            "Description": "Owner of this stack",
+            "Type": "String"
+        },
+        "Email": {
+            "Description": "Email of the owner of this stack",
+            "Type": "String"
+        }
+    },
+    "Resources": {
+        "VPC1": {
+            "Type": "AWS::EC2::VPC",
+            "Properties": {
+                "CidrBlock": "10.0.0.0/16",
+                "EnableDnsSupport": "true",
+                "EnableDnsHostnames": "true",
+                "InstanceTenancy": "default",
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "VPC1"
+                    },
+                    {
+                        "Key": "Owner",
+                        "Value": {
+                            "Ref": "Owner"
+                        }
+                    },
+                    {
+                        "Key": "Email",
+                        "Value": {
+                            "Ref": "Email"
+                        }
+                    }
+                ]
+            }
+        },
+        "PublicSubnet": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "VPC1"
+                },
+                "CidrBlock": "10.0.1.0/24",
+                "AvailabilityZone": "us-west-2a",
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "public-subnet"
+                    },
+                    {
+                        "Key": "Owner",
+                        "Value": {
+                            "Ref": "Owner"
+                        }
+                    },
+                    {
+                        "Key": "Email",
+                        "Value": {
+                            "Ref": "Email"
+                        }
+                    }
+                ]
+            }
+        },
+        "IGW1": {
+            "Type": "AWS::EC2::InternetGateway",
+            "Properties": {
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "IGW1"
+                    },
+                    {
+                        "Key": "Owner",
+                        "Value": {
+                            "Ref": "Owner"
+                        }
+                    },
+                    {
+                        "Key": "Email",
+                        "Value": {
+                            "Ref": "Email"
+                        }
+                    }
+                ]
+            }
+        },
+        "VPCGatewayAttachement": {
+            "Type": "AWS::EC2::VPCGatewayAttachment",
+            "Properties": {
+                "InternetGatewayId": {
+                    "Ref": "IGW1"
+                },
+                "VpcId": {
+                    "Ref": "VPC1"
+                }
+            }
+        },
+        "RouteTable1": {
+            "Type": "AWS::EC2::RouteTable",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "VPC1"
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "public route table"
+                    },
+                    {
+                        "Key": "Owner",
+                        "Value": {
+                            "Ref": "Owner"
+                        }
+                    },
+                    {
+                        "Key": "Email",
+                        "Value": {
+                            "Ref": "Email"
+                        }
+                    }
+                ]
+            }
+        },
+        "RouteRule": {
+            "Type": "AWS::EC2::Route",
+            "Properties": {
+                "RouteTableId": {
+                    "Ref": "RouteTable1"
+                },
+                "DestinationCidrBlock": "0.0.0.0/0",
+                "GatewayId": {
+                    "Ref": "IGW1"
+                }
+            }
+        },
+        "SubnetRouteTableAssociation": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "SubnetId": {
+                    "Ref": "PublicSubnet"
+                },
+                "RouteTableId": {
+                    "Ref": "RouteTable1"
+                }
+            }
+        },
+        "SecurityGroupDMZ": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "Allows public web traffic",
+                "VpcId": {
+                    "Ref": "VPC1"
+                },
+                "SecurityGroupIngress": [
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "80",
+                        "ToPort": "80",
+                        "CidrIp": "0.0.0.0/0"
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "22",
+                        "ToPort": "22",
+                        "CidrIp": "138.68.14.230/32"
+                    }
+                ]
+            }
+        },
+        "WebServer": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "ImageId": {
+                    "Fn::FindInMap": [
+                        "RegionMap",
+                        {
+                            "Ref": "AWS::Region"
+                        },
+                        "64"
+                    ]
+                },
+                "InstanceType": "t2.micro",
+                "KeyName": {
+                    "Ref": "KeyPair"
+                },
+                "NetworkInterfaces": [
+                    {
+                        "AssociatePublicIpAddress": true,
+                        "DeleteOnTermination": true,
+                        "DeviceIndex": "0",
+                        "SubnetId": {
+                            "Ref": "PublicSubnet"
+                        },
+                        "GroupSet": [
+                            {
+                                "Ref": "SecurityGroupDMZ"
+                            }
+                        ]
+                    }
+                ],
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "webserver"
+                    },
+                    {
+                        "Key": "Owner",
+                        "Value": {
+                            "Ref": "Owner"
+                        }
+                    },
+                    {
+                        "Key": "Email",
+                        "Value": {
+                            "Ref": "Email"
+                        }
+                    }
+                ],
+                "UserData": {
+                    "Fn::Base64": {
+                        "Fn::Join": [
+                            "",
+                            [
+                                "#!/bin/bash -xe\n",
+                                "rpm -Uvh https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm\n",
+                                "rpm -Uvh https://mirror.webtatic.com/yum/el7/webtatic-release.rpm\n",
+                                "yum -y install python-pip\n",
+                                "pip install pystache argparse python-daemon requests\n",
+                                "yum -y update\n",
+                                "cd /opt\n",
+                                "curl -O https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz\n",
+                                "tar -xvpf aws-cfn-bootstrap-latest.tar.gz\n",
+                                "cd aws-cfn-bootstrap-1.4/\n",
+                                "python setup.py build\n",
+                                "python setup.py install\n",
+                                "ln -s /usr/init/redhat/cfn-hup /etc/init.d/cfn-hup\n",
+                                "chmod 775 /usr/init/redhat/cfn-hup\n",
+                                "mkdir -p /opt/aws/bin/\n",
+                                "ln -s /usr/bin/cfn-hup /opt/aws/bin/cfn-hup\n",
+                                "ln -s /usr/bin/cfn-init /opt/aws/bin/cfn-init\n",
+                                "# Install the files and packages from the metadata\n",
+                                "/opt/aws/bin/cfn-init -v ",
+                                "         --stack ",
+                                {
+                                    "Ref": "AWS::StackName"
+                                },
+                                "         --resource WebServer ",
+                                "         --configsets Install ",
+                                "         --region ",
+                                {
+                                    "Ref": "AWS::Region"
+                                },
+                                "\n"
+                            ]
+                        ]
+                    }
+                }
+            },
+            "Metadata": {
+                "AWS::CloudFormation::Init": {
+                    "configSets": {
+                        "Install": [
+                            "Install"
+                        ]
+                    },
+                    "Install": {
+                        "packages": {
+                            "yum": {
+                                "httpd": [],
+                                "php70w": [],
+                                "git": []
+                            }
+                        },
+                        "files": {
+                            "/var/www/html/index.php": {
+                                "content": "<?php phpinfo(); ?>\n",
+                                "mode": "000644",
+                                "owner": "root",
+                                "group": "root"
+                            }
+                        },
+                        "services": {
+                            "sysvinit": {
+                                "httpd": {
+                                    "enabled": "true",
+                                    "ensureRunning": "true"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "DependsOn": "VPCGatewayAttachement"
+        }
+    },
+    "Outputs" : {
+        "PublicIP" : {
+            "Description" : "Public IP of WebServer",
+            "Value" : { "Fn::GetAtt" : [ "WebServer", "PublicIp" ] }
+        }
+    }
+}
