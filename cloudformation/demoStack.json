@@ -1,66 +1,5 @@
 {
     "AWSTemplateFormatVersion": "2010-09-09",
-    "Metadata": {
-        "AWS::CloudFormation::Designer": {
-            "9ada821e-e6a7-44f6-a994-184cb7dc640f": {
-                "size": {
-                    "width": 60,
-                    "height": 60
-                },
-                "position": {
-                    "x": 220,
-                    "y": 210
-                },
-                "z": 0,
-                "embeds": [],
-                "ismemberof": [
-                    "886593d1-ad56-4179-a5ae-6ec0d21b3f39"
-                ]
-            },
-            "3a6a8627-332d-44de-8e74-e9c18ad96473": {
-                "size": {
-                    "width": 60,
-                    "height": 60
-                },
-                "position": {
-                    "x": 220,
-                    "y": 120
-                },
-                "z": 0,
-                "embeds": [],
-                "ismemberof": [
-                    "0a3be7d4-b633-481e-89c6-04d51cbeb32b"
-                ]
-            },
-            "0a3be7d4-b633-481e-89c6-04d51cbeb32b": {
-                "size": {
-                    "width": 60,
-                    "height": 60
-                },
-                "position": {
-                    "x": 320,
-                    "y": 120
-                },
-                "z": 0,
-                "embeds": []
-            },
-            "886593d1-ad56-4179-a5ae-6ec0d21b3f39": {
-                "size": {
-                    "width": 60,
-                    "height": 60
-                },
-                "position": {
-                    "x": 320,
-                    "y": 210
-                },
-                "z": 0,
-                "embeds": [],
-                "isrelatedto": [
-                    "0a3be7d4-b633-481e-89c6-04d51cbeb32b"
-                ]
-            }
-        }
-    },
     "Resources": {
         "RDSDBI11EDI": {
             "Type": "AWS::RDS::DBInstance",
@@ -81,11 +20,6 @@
                         ]
                     }
                 ]
-            },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "9ada821e-e6a7-44f6-a994-184cb7dc640f"
-                }
             }
         },
         "EC2I3REDX": {
@@ -117,11 +51,6 @@
 			]
 		    }
 		}
-            },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "3a6a8627-332d-44de-8e74-e9c18ad96473"
-                }
             }
         },
         "EC2SG2RRRO": {
@@ -136,11 +65,6 @@
                         "CidrIp": "0.0.0.0/0"
                     }
                 ]
-            },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "0a3be7d4-b633-481e-89c6-04d51cbeb32b"
-                }
             }
         },
         "EC2SG4SHV8": {
@@ -158,11 +82,6 @@
 			}
                     }
                 ]
-            },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "886593d1-ad56-4179-a5ae-6ec0d21b3f39"
-                }
             }
         }
     }

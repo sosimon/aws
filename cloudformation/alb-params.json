@@ -1,0 +1,52 @@
+{
+    "StackName": "ALB",
+    "DisableRollback": true, 
+    "Parameters": [
+        {
+            "ParameterKey": "pVPCId", 
+            "ParameterValue": "vpc-12345678"
+        },
+        {
+            "ParameterKey": "pDMZSubnets", 
+            "ParameterValue": "subnet-12345678,subnet-12345678,subnet-12345678"
+        },
+        {
+            "ParameterKey": "pALBSecurityGroups", 
+            "ParameterValue": "sg-12345678"
+        },
+        {
+            "ParameterKey": "pSyncGatewayInstanceId", 
+            "ParameterValue": "i-12345678"
+        },
+        {
+            "ParameterKey": "pServicesInstanceId",
+            "ParameterValue": "i-12345678"
+        }
+    ],
+    "Tags": [
+        {
+            "Key": "Name", 
+            "Value": "Couchbase"
+        },
+        {
+            "Key": "Role", 
+            "Value": "Couchbase"
+        },
+        {
+            "Key": "Environment", 
+            "Value": "dev"
+        },
+        {
+            "Key": "Org", 
+            "Value": ""
+        },
+        {
+            "Key": "CreateDate", 
+            "Value": "20170615"
+        },
+        {
+            "Key": "ProjectName", 
+            "Value": ""
+        }
+    ]
+}

@@ -1,0 +1,244 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Mappings": {},
+    "Parameters": {
+        "pVPCId": {
+            "Description": "Owner of this stack",
+            "Type": "String"
+        },
+        "pDMZSubnets": {
+            "Description": "DMZ/public subnets",
+            "Type": "CommaDelimitedList"
+        },
+        "pALBSecurityGroups": {
+            "Description" : "Security Group Ids",
+            "Type" : "CommaDelimitedList"
+        },
+        "pSyncGatewayInstanceId": {
+            "Description" : "Sync Gateway Instance Id",
+            "Type" : "String"
+        },
+        "pServicesInstanceId": {
+            "Description" : "Microservices Instance Id",
+            "Type" : "String"
+        }
+    },
+    "Resources": {
+        "ALB": {
+            "Type" : "AWS::ElasticLoadBalancingV2::LoadBalancer",
+            "Properties" : {
+                "Name" : "ALB",
+                "SecurityGroups" : { "Ref": "pALBSecurityGroups"},
+                "Subnets" : { "Ref": "pDMZSubnets" },
+                "Tags" : [
+                    {
+                        "Key": "Name", 
+                        "Value": "ALB"
+                    },
+                    {
+                        "Key": "Role", 
+                        "Value": "LoadBalancer"
+                    },
+                    {
+                        "Key": "Environment", 
+                        "Value": "dev"
+                    },
+                    {
+                        "Key": "Org", 
+                        "Value": ""
+                    },
+                    {
+                        "Key": "CreateDate", 
+                        "Value": "20170615"
+                    },
+                    {
+                        "Key": "ProjectName", 
+                        "Value": ""
+                    }
+                ]
+            }
+        },
+        "SyncGatewayTargetGroup": {
+            "Type" : "AWS::ElasticLoadBalancingV2::TargetGroup",
+            "Properties" : {
+                "HealthCheckIntervalSeconds": 30,
+                "HealthCheckPath": "/",
+                "HealthCheckPort": "4984",
+                "HealthCheckProtocol": "HTTP",
+                "HealthCheckTimeoutSeconds": 10,
+                "HealthyThresholdCount": 3,
+                "Matcher": {
+                    "HttpCode": "200"
+                },
+                "Name": "SyncGateway",
+                "Port": 4984,
+                "Protocol": "HTTP",
+                "Tags": [
+                    {
+                        "Key": "Name", 
+                        "Value": "SyncGatewayTargetGroup"
+                    },
+                    {
+                        "Key": "Role", 
+                        "Value": "LoadBalancerTargetGroup"
+                    },
+                    {
+                        "Key": "Environment", 
+                        "Value": "dev"
+                    },
+                    {
+                        "Key": "Org", 
+                        "Value": ""
+                    },
+                    {
+                        "Key": "CreateDate", 
+                        "Value": "20170615"
+                    },
+                    {
+                        "Key": "ProjectName", 
+                        "Value": ""
+                    }
+                ],
+                "Targets": [
+                    { "Id": {"Ref" : "pSyncGatewayInstanceId"}, "Port": 4984 }
+                ],
+                "UnhealthyThresholdCount": 2,
+                "VpcId": { "Ref": "pVPCId" }
+            }
+        },
+        "ServicesTargetGroup": {
+            "Type" : "AWS::ElasticLoadBalancingV2::TargetGroup",
+            "Properties" : {
+                "HealthCheckIntervalSeconds": 30,
+                "HealthCheckPath": "/",
+                "HealthCheckPort": 80,
+                "HealthCheckProtocol": "HTTP",
+                "HealthCheckTimeoutSeconds": 10,
+                "HealthyThresholdCount": 3,
+                "Matcher": {
+                    "HttpCode": "200"
+                },
+                "Name": "Services",
+                "Port": 80,
+                "Protocol": "HTTP",
+                "Tags": [
+                    {
+                        "Key": "Name", 
+                        "Value": "ServicesTargetGroup"
+                    },
+                    {
+                        "Key": "Role", 
+                        "Value": "ServicesTargetGroup"
+                    },
+                    {
+                        "Key": "Environment", 
+                        "Value": "dev"
+                    },
+                    {
+                        "Key": "Org", 
+                        "Value": ""
+                    },
+                    {
+                        "Key": "CreateDate", 
+                        "Value": "20170615"
+                    },
+                    {
+                        "Key": "ProjectName", 
+                        "Value": ""
+                    }
+                ],
+                "Targets": [
+                    { "Id": {"Ref" : "pServicesInstanceId"}, "Port": 80 }
+                ],
+                "UnhealthyThresholdCount": 2,
+                "VpcId": { "Ref": "pVPCId" }
+            }
+        },
+        "HTTPSListener": {
+            "Type" : "AWS::ElasticLoadBalancingV2::Listener",
+            "Properties" : {
+                "Certificates" : [
+                    {
+                        "CertificateArn": "arn:aws:acm:us-west-2:12345678:certificate/12345678"
+                    }
+                ],
+                "DefaultActions" : [
+                    {
+                        "TargetGroupArn" : { "Ref": "ServicesTargetGroup" },
+                        "Type" : "forward"
+                    }
+                ],
+                "LoadBalancerArn" : { "Ref": "ALB" },
+                "Port" : 443,
+                "Protocol" : "HTTPS"
+            }
+        },
+        "SyncGatewayListenerRule": {
+            "Type" : "AWS::ElasticLoadBalancingV2::ListenerRule",
+            "Properties" : {
+                "Actions" : [
+                    {
+                        "Type": "forward",
+                        "TargetGroupArn": { "Ref": "SyncGatewayTargetGroup" }
+                    }
+                ],
+                "Conditions" : [
+                    {
+                        "Field": "host-header",
+                        "Values": [ "example.com" ]
+                    }
+                ],
+                "ListenerArn" : { "Ref": "HTTPSListener" },
+                "Priority" : 2
+            }
+        },
+        "ServicesListenerRule": {
+            "Type" : "AWS::ElasticLoadBalancingV2::ListenerRule",
+            "Properties" : {
+                "Actions" : [
+                    {
+                        "Type": "forward",
+                        "TargetGroupArn": { "Ref": "ServicesTargetGroup" }
+                    }
+                ],
+                "Conditions" : [
+                    {
+                        "Field": "host-header",
+                        "Values": [ "example.com" ]
+                    }
+                ],
+                "ListenerArn" : { "Ref": "HTTPSListener" },
+                "Priority" : 1
+            }
+        }
+    },
+    "Outputs": {
+        "ALBDNSName":{
+            "Description": "ALB DNS Name",
+            "Value": {
+                "Fn::GetAtt":[
+                    "ALB",
+                    "DNSName"
+                ]
+            }
+        },
+        "ALBFullName":{
+            "Description": "ALB Full Name",
+            "Value": {
+                "Fn::GetAtt":[
+                    "ALB",
+                    "LoadBalancerFullName"
+                ]
+            }
+        },
+        "ALBName":{
+            "Description": "ALB Name",
+            "Value": {
+                "Fn::GetAtt":[
+                    "ALB",
+                    "LoadBalancerName"
+                ]
+            }
+        }
+    }
+}

@@ -1,0 +1,123 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Mappings": {},
+    "Parameters": {
+        "Owner": {
+            "Description": "Owner of this stack",
+            "Type": "String",
+            "Default": "Simon So"
+        },
+        "Email": {
+            "Description": "Email of stack owner",
+            "Type": "String",
+            "Default": "simon.so@gmail.com"
+        },
+        "VPC": {
+            "Description" : "VPC IDs",
+            "Type" : "AWS::EC2::VPC::Id"
+        },
+        "PublicSubnet": {
+            "Description" : "Subnet IDs",
+            "Type" : "AWS::EC2::Subnet::Id"
+        },
+        "BackendInstance": {
+            "Description" : " backend EC2 instance",
+            "Type" : "AWS::EC2::Instance::Id"
+        },
+        "SecurityGroup": {
+            "Description" : "Security group for ELB",
+            "Type" : "AWS::EC2::SecurityGroup::Id"
+        },
+        "S3LoggingBucket": {
+            "Description": "S3 Bucket name for ELB logs",
+            "Type": "String"
+        }
+    },
+    "Resources": {
+        "S3LoggingBucketPolicy": {
+            "Type": "AWS::S3::BucketPolicy",
+            "Properties": {
+                "Bucket": { "Ref": "S3LoggingBucket" },
+                "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [ {
+                        "Sid": "ELBAccessLogs20130930",
+                        "Effect": "Allow",
+                        "Resource": {
+                            "Fn::Join": [
+                                "",
+                                [
+                                "arn:aws:s3:::",
+                                { "Ref": "S3LoggingBucket" },
+                                "/",
+                                "dev",
+                                "/AWSLogs/",
+                                { "Ref": "AWS::AccountId" },
+                                "/*"
+                                ]
+                            ]
+                        },
+                        "Principal": { 
+                            "AWS": [
+                                "797873946194"
+                            ]
+                        },
+                        "Action": [
+                            "s3:PutObject"
+                        ]
+                    } ]
+                }
+            }
+        },
+        "ELB": {
+            "Type" : "AWS::ElasticLoadBalancing::LoadBalancer",
+            "Properties" : {    
+                "AccessLoggingPolicy" : {
+                    "EmitInterval" : "60",
+                    "Enabled" : "true",
+                    "S3BucketName" : { "Ref": "S3LoggingBucket" },
+                    "S3BucketPrefix" : ""
+                },
+                "HealthCheck" : {
+                    "Target": "HTTP:80/",
+                    "HealthyThreshold": "2",
+                    "UnhealthyThreshold": "3",
+                    "Interval": "30",
+                    "Timeout": "5"
+                },
+                "Instances" : [ {
+                    "Ref": "BackendInstance"
+                } ],
+                "LoadBalancerName" : "ELB",
+                "Listeners" : [ {
+                    "LoadBalancerPort": "443",
+                    "InstancePort": "80",
+                    "Protocol": "HTTPS",
+                    "SSLCertificateId": "arn:aws:acm:us-west-2:12345678:certificate/12345678"
+                } ],
+                "SecurityGroups" : [ { "Ref": "SecurityGroup" } ],
+                "Subnets" : [ { "Ref": "PublicSubnet" } ],
+                "Tags" : [ {
+                    "Key": "Owner",
+                    "Value": {"Ref": "Owner"}
+                },
+                {
+                    "Key": "Email",
+                    "Value": {"Ref": "Email"}
+                } ]
+            },
+            "DependsOn": "S3LoggingBucketPolicy"
+        }
+    },
+    "Outputs": {
+        "ELBDNSName":{
+            "Description": " ELB DNS Name",
+            "Value": {
+                "Fn::GetAtt":[
+                    "ELB",
+                    "DNSName"
+                ]
+            }
+        }
+    }
+}
