@@ -3,28 +3,35 @@ import re
 
 ec2 = boto3.resource("ec2")
 
-bucket_name = "simonso-access-control"
 s3 = boto3.resource("s3")
+bucket_name = "simonso-access-control"
 bucket = s3.Bucket(bucket_name)
 
 
 def lambda_handler(event, context):
-    for obj in bucket.objects.all():
-        # TODO: get list of security groups
+    # Get list of security groups
+    sg_ids = [ sg.id for sg in ec2.security_groups.all() ]
 
+    for obj in bucket.objects.all():
         filename = obj.key
 
         # Make sure, at the very least, the filenames match the pattern of a security group id
         # otherwise, move on to the next file
         if not re.match(r'^sg-[a-z0-9]{8}$', filename):
+            print '%s does not match the security group id pattern' % filename
             continue
 
-        # TODO: check if filename matches any of the security groups, if not, move on
+        # Check if filename matches any of the security groups, if not, move on
+        if filename not in sg_ids:
+            print 'Security group %s not found' % filename
+            continue
 
         # Read rules list from S3 bucket
         content = obj.get()["Body"].read()
         desired_rules = content.strip("\n").split("\n")
         print desired_rules
+
+        sg = ec2.SecurityGroup(filename)
 
         # Get existing list of rules from security group
         actual_rules = []
