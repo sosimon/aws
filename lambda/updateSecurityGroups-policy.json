@@ -9,30 +9,24 @@
                 "ec2:DescribeSecurityGroupReferences",
                 "ec2:RevokeSecurityGroupIngress"
             ],
-            "Resource": "arn:aws:ec2:us-west-2:490069154287:security-group/*"
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": "s3:GetObject",
+            "Resource": "arn:aws:s3:::simonso-access-control/*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": "s3:ListBucket",
+            "Resource": "arn:aws:s3:::simonso-access-control"
         },
         {
             "Effect": "Allow",
             "Action": [
-                "s3:Get*",
-                "s3:List*"
+                "logs:*"
             ],
-            "Resource": "arn:aws:s3:us-west-2:490069154287:simonso-access-control/*"
-        },
-        {
-            "Effect": "Allow",
-            "Action": "logs:CreateLogGroup",
-            "Resource": "arn:aws:logs:us-west-2:490069154287:*"
-        },
-        {
-            "Effect": "Allow",
-            "Action": [
-                "logs:CreateLogStream",
-                "logs:PutLogEvents"
-            ],
-            "Resource": [
-                "arn:aws:logs:us-west-2:490069154287:log-group:/aws/lambda/updateSecurityGroups:*"
-            ]
+            "Resource": "arn:aws:logs:*:*:*"
         }
     ]
 }

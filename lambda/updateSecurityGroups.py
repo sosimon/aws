@@ -7,6 +7,8 @@ s3 = boto3.resource("s3")
 bucket_name = "simonso-access-control"
 bucket = s3.Bucket(bucket_name)
 
+# if dry_run is true, no security groups will be modified
+dry_run = True
 
 def lambda_handler(event, context):
     # Get list of security groups
@@ -29,6 +31,8 @@ def lambda_handler(event, context):
         # Read rules list from S3 bucket
         content = obj.get()["Body"].read()
         desired_rules = content.strip("\n").split("\n")
+        # remove comments
+        desired_rules = [rule.split("#")[0].strip(" ") for rule in desired_rules]
         print desired_rules
 
         sg = ec2.SecurityGroup(filename)
@@ -43,15 +47,17 @@ def lambda_handler(event, context):
         # Remove rules not in desired_rules
         for rule in actual_rules:
             if rule not in desired_rules:
-                print "Removing rule: %s" % rule 
+                print "Removing rule: %s" % rule
                 r = rule.split(",")
-                sg.revoke_ingress(IpProtocol=r[0],FromPort=int(r[1]),ToPort=int(r[2]),CidrIp=r[3])
+                if not dry_run:
+                    sg.revoke_ingress(IpProtocol=r[0],FromPort=int(r[1]),ToPort=int(r[2]),CidrIp=r[3])
 
         # Add rules not in actual_rules
         for rule in desired_rules:
             if rule not in actual_rules:
                 print "Adding rule: %s" % rule
                 r = rule.split(",")
-                sg.authorize_ingress(IpProtocol=r[0],FromPort=int(r[1]),ToPort=int(r[2]),CidrIp=r[3])
+                if not dry_run:
+                    sg.authorize_ingress(IpProtocol=r[0],FromPort=int(r[1]),ToPort=int(r[2]),CidrIp=r[3])
 
 
